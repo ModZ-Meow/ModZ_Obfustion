@@ -1,47 +1,66 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ModZ Obfuscator</title>
-
-<style>
+<title>ModZ Obfuscator V5.8</title><style>
 body{
     margin:0;
     background:#0b0b0b;
-    color:#eaeaea;
+    color:#d0d0d0;
     font-family:Consolas, monospace;
     display:flex;
     justify-content:center;
-    align-items:flex-start;
-    min-height:100vh;
+    align-items:center;
+    height:100vh;
 }
 
 .ui{
-    width:100%;
-    max-width:520px;
-    padding:14px;
-    box-sizing:border-box;
+    width:92vw;
+    max-width:1250px;
+    height:86vh;
+    background:#121212;
+    border:1px solid #2a2a2a;
+    border-radius:10px;
+    display:flex;
+    flex-direction:column;
+    padding:16px;
 }
 
-h3{
-    margin:10px 0;
-    font-size:18px;
-    color:#d0d0d0;
+h2{
+    margin:0;
+    font-size:16px;
+    color:#e0e0e0;
+}
+
+.content{
+    display:flex;
+    flex:1;
+    gap:10px;
+    margin-top:10px;
 }
 
 textarea{
-    width:100%;
-    height:180px;
-    background:#111;
-    color:#eaeaea;
-    border:1px solid #333;
-    padding:10px;
-    margin-top:10px;
+    flex:1;
+    background:#0e0e0e;
+    border:1px solid #2c2c2c;
+    border-radius:8px;
+    color:#cfcfcf;
+    padding:12px;
     resize:none;
     outline:none;
     font-size:13px;
-    box-sizing:border-box;
+}
+
+.output{
+    flex:1;
+    background:#0e0e0e;
+    border:1px solid #2c2c2c;
+    border-radius:8px;
+    padding:12px;
+    overflow:auto;
+    white-space:pre-wrap;
+    font-size:13px;
+    line-height:1.4;
 }
 
 .buttons{
@@ -53,159 +72,193 @@ textarea{
 button{
     flex:1;
     padding:10px;
-    border:none;
-    background:#1f1f1f;
-    color:#eaeaea;
-    cursor:pointer;
-    font-weight:bold;
-    font-size:13px;
+    background:#1a1a1a;
     border:1px solid #333;
-    transition:0.15s;
+    color:#e6e6e6;
+    cursor:pointer;
+    border-radius:6px;
 }
 
 button:hover{
-    background:#2a2a2a;
+    background:#262626;
 }
 
-.output{
+.info{
     margin-top:10px;
     padding:10px;
-    background:#111;
-    border:1px solid #333;
-    min-height:180px;
-    white-space:pre-wrap;
-    word-wrap:break-word;
-    font-size:13px;
+    background:#0e0e0e;
+    border:1px solid #2a2a2a;
+    border-radius:8px;
+    font-size:12px;
+    color:#9a9a9a;
+}
+</style></head><body><div class="ui"><h2>Lua Obfuscator Tool</h2><div class="content">
+    <textarea id="input" placeholder="Paste Lua script here"></textarea>
+    <div id="output" class="output"></div>
+</div><div class="buttons">
+    <button onclick="obfuscate()">Obfuscate</button>
+    <button onclick="copyOut()">Copy</button>
+    <button onclick="clearAll()">Clear</button>
+</div><div class="info">
+    Creator:ModZ<br>
+    Mode: Lua and Luau<br>
+    Release date: 29/5/2026
+</div></div><script>
+
+function getTime(){
+    let d=new Date();
+    return (
+        d.getDate().toString().padStart(2,'0')+"/"+
+        (d.getMonth()+1).toString().padStart(2,'0')+"/"+
+        d.getFullYear()+" "+
+        d.getHours().toString().padStart(2,'0')+":"+
+        d.getMinutes().toString().padStart(2,'0')+":"+
+        d.getSeconds().toString().padStart(2,'0')
+    );
 }
 
-/* syntax colors */
-.char-blue{ color:#4aa3ff; }
-.num-yellow{ color:#ffd84a; }
-.sym-green{ color:#45ff9a; }
-</style>
-</head>
+function randName(len){
+    let c="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    let o="";
+    for(let i=0;i<len;i++) o+=c[Math.floor(Math.random()*c.length)];
+    return o;
+}
 
-<body>
+function rand(min,max){
+    return Math.floor(Math.random()*(max-min+1))+min;
+}
 
-<div class="ui">
+function spamLines(){
+    let c="ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    let o="";
+    for(let i=0;i<50;i++) o+="\n-- "+c[rand(0,c.length-1)].repeat(rand(3,20));
+    return o;
+}
 
-    <h3>ModZ Obfuscation V1.4</h3>
+function splitRandom(str){
+    let a=[],i=0;
+    while(i<str.length){
+        let s=rand(2,6);
+        a.push(str.substring(i,i+s));
+        i+=s;
+    }
+    return a;
+}
 
-    <textarea id="input" placeholder="Paste Lua script here..."></textarea>
+function xorEncode(str,key){
+    let o=[];
+    for(let i=0;i<str.length;i++) o.push(String.fromCharCode(str.charCodeAt(i)^key));
+    return o.join("");
+}
 
-    <div class="buttons">
-        <button onclick="idk()">Obfuscate</button>
-        <button onclick="copyOut()">Copy</button>
-        <button onclick="clearAll()">Clear</button>
-    </div>
+function b64(bytes){
+    const c="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let o="",i=0;
+    while(i<bytes.length){
+        let c1=bytes.charCodeAt(i++)&255;
+        let c2=bytes.charCodeAt(i++);
+        let c3=bytes.charCodeAt(i++);
 
-    <div class="output" id="output"></div>
+        let e1=c1>>2;
+        let e2=((c1&3)<<4)|(c2>>4);
+        let e3=((c2&15)<<2)|(c3>>6);
+        let e4=c3&63;
 
-</div>
+        if(isNaN(c2)){e3=e4=64;}
+        else if(isNaN(c3)){e4=64;}
 
-<script>
+        o+=c.charAt(e1)+c.charAt(e2)+
+        (e3!=64?c.charAt(e3):'=')+
+        (e4!=64?c.charAt(e4):'=');
+    }
+    return o;
+}
 
-function idk(){
+function colorChar(ch){
+    const yellow="_=×*:+()[]\"";
+    if(/[a-zA-Z]/.test(ch)) return `<span style="color:#ff4d4d">${ch}</span>`;
+    if(/[0-9]/.test(ch)) return `<span style="color:#4dff88">${ch}</span>`;
+    if(yellow.includes(ch)) return `<span style="color:#ffd84d">${ch}</span>`;
+    return `<span style="color:#e6e6e6">${ch}</span>`;
+}
 
-    let raw = document.getElementById("input").value;
+function render(text){
+    let o="";
+    for(let i=0;i<text.length;i++) o+=colorChar(text[i]);
+    document.getElementById("output").innerHTML=o;
+}
 
-    if(!raw.trim()){
-        alert("Paste script first");
-        return;
+function obfuscate(){
+
+    let raw=document.getElementById("input").value;
+    if(!raw.trim()) return alert("Paste script first");
+
+    let time=getTime();
+
+    raw="-- OBF ACTIVATED: "+time+"\n-- GENERATED BY MODZ\n\n"+raw;
+
+    raw=raw.replace(/\r/g,"").replace(/\nreturn/g,"\n\n\nreturn");
+    raw+=spamLines();
+
+    let f1=rand(10,80),f2=rand(10,80);
+    let key=((f1*2)+f2)-f1;
+
+    let enc=b64(xorEncode(raw,key));
+    let chunks=splitRandom(enc);
+
+    let table=[],order=[];
+
+    for(let i=0;i<chunks.length;i++){
+        let id=rand(1000,9999);
+        table.push(`[${id}]="${chunks[i]}"`);
+        order.push(id);
     }
 
-    let bytes = Array.from(raw).map(c => c.charCodeAt(0));
+    table.sort(()=>Math.random()-0.5);
 
-    let bc = [];
+    let a=randName(8),b=randName(8),c=randName(8),d=randName(8),e=randName(8);
 
-    let key = 0x55;
-    let ip = 1;
+    let lua=
+"-- OBF ACTIVATED: "+time+"\n-- MODZ ENGINE FIXED\n\n"+
 
-    for(let b of bytes){
-        key ^= ip;
-        bc.push(0x01, b ^ key);
-        ip += 2;
-    }
+"local "+a+"={\n"+table.join(",\n")+"\n}\n\n"+
 
-    key ^= ip;
-    bc.push(0x03, 0);
+"local "+b+"={"+order.join(",")+"}\n\n"+
 
-    let template = `--[[ ModZ Obfuscation V1.4 ]]--
+"local function "+c+"()\n"+
+" local x=\"\"\n"+
+" for _,v in ipairs("+b+") do x=x.."+a+"[v] end\n"+
+" return x\n"+
+"end\n\n"+
 
-local _VM = {
-    S = {},
-    IP = 1,
-    BC = {${bc.join(",")}},
-    K = 0x55
+"local function "+d+"(data)\n"+
+" local b='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'\n"+
+" data=string.gsub(data,'[^'..b..'=]','')\n"+
+" return (data:gsub('.',function(x) if(x=='=')then return'' end local r,f='',(b:find(x)-1) for i=6,1,-1 do r=r..((f%2^i-f%2^(i-1)>0)and'1'or'0') end return r end):gsub('%d%d%d?%d?%d?%d?%d?%d?',function(x) if(#x~=8)then return'' end local c=0 for i=1,8 do c=c+((x:sub(i,i)=='1')and 2^(8-i)or 0) end return string.char(c) end))\n"+
+"end\n\n"+
+
+"local function "+e+"(str,key)\n"+
+" local o={}\n"+
+" for i=1,#str do o[i]=string.char(bit32.bxor(string.byte(str,i),key)) end\n"+
+" return table.concat(o)\n"+
+"end\n\n"+
+
+"-- FIXED EXEC FLOW\n"+
+"local decoded="+e+"("+d+"("+c+"()),"+key+")\n"+
+"local fn=(loadstring or load)(decoded)\n"+
+"return fn()\n";
+
+    render(lua);
 }
 
-local _OPS = {
-    [0x01] = function(v)
-        table.insert(_VM.S, string.char(bit32.bxor(v, _VM.K)))
-    end,
-
-    [0x03] = function()
-        local src = table.concat(_VM.S)
-        local fn = (loadstring or load)(src)
-        return fn()
-    end
-}
-
-while _VM.IP <= #_VM.BC do
-    local op = _VM.BC[_VM.IP]
-    _VM.K = bit32.bxor(_VM.K, _VM.IP)
-
-    local handler = _OPS[op]
-    if handler then
-        handler(_VM.BC[_VM.IP + 1])
-    end
-
-    _VM.IP = _VM.IP + 2
-end`;
-
-    document.getElementById("output").innerHTML = highlight(template);
-}
-
-/* ===== Syntax Highlighter ===== */
-function highlight(text){
-
-    let res = "";
-
-    for(let i=0;i<text.length;i++){
-
-        let c = text[i];
-
-        if(/[a-zA-Z]/.test(c)){
-            res += `<span class="char-blue">${c}</span>`;
-        }
-        else if(/[0-9]/.test(c)){
-            res += `<span class="num-yellow">${c}</span>`;
-        }
-        else if(/[*()\\[\\]{}=%×+_\\-]/.test(c)){
-            res += `<span class="sym-green">${c}</span>`;
-        }
-        else{
-            res += c;
-        }
-    }
-
-    return res;
-}
-
-/* Copy */
 function copyOut(){
-    let text = document.getElementById("output").innerText;
-    navigator.clipboard.writeText(text);
-    alert("Copied!");
+    navigator.clipboard.writeText(document.getElementById("output").innerText);
 }
 
-/* Clear */
 function clearAll(){
-    document.getElementById("input").value = "";
-    document.getElementById("output").innerHTML = "";
+    document.getElementById("input").value="";
+    document.getElementById("output").innerHTML="";
 }
 
-</script>
-
-</body>
-  </html>
+</script></body>
+</html>
